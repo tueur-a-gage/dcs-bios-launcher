@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 
+import interface
+
 # Check if config.ini file exists
 def ensure_socat():
     '''Function to ensure that 'socat' is available'''
@@ -31,3 +33,6 @@ try:
 except KeyError:
     print("Error : The path to SOCAT is not defined in config.ini.")
     sys.exit(1)
+
+print("Opening the graphical interface...")
+interface.open_interface()  # Open the graphical interface

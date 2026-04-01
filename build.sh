@@ -22,7 +22,7 @@ docker run --rm \
   -v "$build_folder:/src/build" \
   -v "$dist_folder:/src/dist" \
   batonogov/pyinstaller-windows \
-  "pyinstaller --onefile $PRODUCTION --name DCS-BIOS-Launcher --add-data 'usb_icon.ico;.' dcs-bios-launcher.py"
+  "pyinstaller --onefile $PRODUCTION --name DCS-BIOS-Launcher --add-data 'usb_icon.ico;.' --add-data 'vfa103.png;.' dcs-bios-launcher.py"
 
 # If need to update pip and install requirements before building, use this command instead:
 # docker run --rm \
