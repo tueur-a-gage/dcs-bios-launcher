@@ -1,6 +1,9 @@
-import os, sys
+import os
+import sys
+import configparser
 import tkinter as tk
 import communication as com
+from error_mgt import ConfigError
 
 def resource_path(relative_path):
     """Get the absolute path of the file"""
@@ -17,15 +20,15 @@ class TextRedirector:
         self.text_widget.insert(tk.END, message)
         self.text_widget.see(tk.END)  # Scroll automatically to the bottom
 
-    # def flush(self):
-    #     """Necessary for compatibility with sys.stdout/stderr."""
-    #     pass
-
+    def flush(self):
+        """Called when closed"""
 
 def open_interface() -> None:
     '''Function to open the graphical interface'''
     tk_root = tk.Tk()
     tk_root.title("Available COM ports list")
+
+    socat_processes = []  # List to keep track of launched socat processes
 
     try:
         # Load and set the window icon
@@ -41,11 +44,11 @@ def open_interface() -> None:
         right_frame = tk.Frame(top_frame)
         right_frame.pack(side=tk.RIGHT, anchor='n', padx=10, pady=10)
 
-        tk.Label(right_frame, text="Select com ports and click Connect").pack()
+        tk.Label(left_frame, text="Select com ports and click Connect").pack()
 
         # Create a Listbox to display available COM ports
         port_listbox = tk.Listbox(
-            left_frame, 
+            left_frame,
             selectmode=tk.MULTIPLE,
             width=40, height=10, bd=2, relief=tk.GROOVE)
         port_listbox.pack(padx=5, pady=5)
@@ -56,8 +59,22 @@ def open_interface() -> None:
         # Create a container for the buttons Scan & Connect
         button_frame = tk.Frame(right_frame)
         button_frame.pack(fill=tk.X, expand=True)
-        tk.Button(button_frame, text="Scan", command=lambda: com.scan_ports(log_text, port_listbox, nb_ports_text)).grid(row=0, column=0, sticky='ew', padx=5, pady=5)
-        tk.Button(button_frame, text="Connect", command=lambda: com.connect_ports(log_text, port_listbox, silent_mode)).grid(row=0, column=1, sticky='ew', padx=5, pady=5)
+
+        scan_button = tk.Button(button_frame,
+                                text="Scan",
+                                command=lambda: com.scan_ports(log_text,
+                                                               port_listbox,
+                                                               nb_ports_text))
+        scan_button.grid(row=0, column=0, sticky='ew', padx=5, pady=5)
+
+        connect_button = tk.Button(button_frame,
+                                   text="Connect",
+                                   command=lambda: com.connect_ports(socat_path,
+                                                                     log_text,
+                                                                     port_listbox,
+                                                                     silent_mode,
+                                                                     socat_processes))
+        connect_button.grid(row=0, column=1, sticky='ew', padx=5, pady=5)
         button_frame.grid_columnconfigure(0, weight=1)
         button_frame.grid_columnconfigure(1, weight=1)
 
@@ -81,13 +98,35 @@ def open_interface() -> None:
         log_text.pack(padx=5, pady=5)
 
         # Redirect stdout and stderr to the log text area
-        sys.stdout = TextRedirector(log_text)
-        sys.stderr = TextRedirector(log_text)
+        # sys.stdout = TextRedirector(log_text)
+        # sys.stderr = TextRedirector(log_text)
 
-        com.scan_ports(log_text, port_listbox)
+        # Check if config.ini file exists
+        print("Checking for config.ini file...")
+        if not os.path.exists("config.ini"):
+            raise ConfigError("The config.ini file is not found.")
+
+        # Read the configuration from the ini file
+        config = configparser.ConfigParser()
+        config.read("config.ini")
+
+        # Path to the socat command
+        try:
+            print("Reading SOCAT path from config.ini...")
+            socat_path = config["Paths"]["SOCAT"]
+            print(f"SOCAT path found: {socat_path}")
+
+        except KeyError as e:
+            raise ConfigError("The path to SOCAT is not defined in config.ini.") from e
+
+        com.scan_ports(log_text, port_listbox, nb_ports_text)
 
     except tk.TclError as e:
         print(f"Warning: {e}")
+    except ConfigError as e:
+        print(f"Error : {e}")
+        scan_button.config(state=tk.DISABLED)
+        connect_button.config(state=tk.DISABLED)
 
     def on_closing():
         try:
