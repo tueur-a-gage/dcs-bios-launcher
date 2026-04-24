@@ -4,6 +4,7 @@ from tkinter import messagebox
 import serial.tools.list_ports
 import subprocess, sys
 from error_mgt import ConfigError, CommunicationError
+from serial_net_bridge import SerialNetBridge
 
 def scan_ports(log_text: tk.Text, port_listbox: tk.Listbox, nb_ports_text: tk.Label):
 
@@ -40,7 +41,7 @@ def ensure_socat(socat_path: str):
     except subprocess.CalledProcessError as e:
         raise ConfigError(f"SOCAT is not installed or not accessible at path: {socat_path}") from e
 
-def run(socat_path: str, port: int, silent: bool, socat_processes: list, protocol: str="UDP"):
+def run_socat(socat_path: str, port: int, silent: bool, socat_processes: list, protocol: str="UDP"):
     """Function to run socat with the specified parameters."""
 
     verbose = "-v" if not silent else ""
@@ -101,7 +102,7 @@ def connect_ports(socat_path: str,
                   log_text: tk.Text,
                   port_listbox: tk.Listbox,
                   silent_mode: tk.BooleanVar,
-                  socat_processes: list):
+                  bridges: list):
     """Connect to the selected COM ports."""
     log_text.delete(1.0, tk.END)  # Clear the log text area before scanning
 
@@ -125,7 +126,7 @@ def connect_ports(socat_path: str,
     for port in selected_ports:
         try:
             print(f" - COM{port}")
-            run(socat_path, int(port), silent_mode.get(), socat_processes)
+            run_socket(int(port), silent_mode.get(), bridges)
         except (ValueError, serial.SerialException) as e:
             messagebox.showerror("Error", f"Failed to connect to port {port}: {e}")
 
@@ -133,3 +134,31 @@ def connect_ports(socat_path: str,
 
     print("")
     print ("### All selected COM ports have been connected. ###")
+
+def run_socket(port: int, silent: bool, bridges: list, protocol: str = "UDP"):
+    """
+    Start python socket.
+    """
+    try:
+        bridge = SerialNetBridge(port=port, protocol=protocol, silent=silent)
+        bridge.start()
+        bridges.append(bridge)
+        print(f"Run bridge {protocol} on port COM{port}")
+    except serial.SerialException as e:
+        raise CommunicationError(f"Error configuring COM{port}: {e}") from e
+    except Exception as e:
+        raise CommunicationError(f"Error on bridge usage: {e}") from e
+
+def stop_all_bridges(bridges: list):
+    """Stop all started bridges."""
+    for obj in bridges:
+        try:
+            # ancien comportement (si jamais il restait des Popen) => si SOCAT ?
+            if hasattr(obj, "terminate"):
+                obj.terminate()
+            # nouveau bridge Python
+            elif hasattr(obj, "stop"):
+                obj.stop()
+        except Exception as e:
+            print(f"Warning while stopping object: {e}")
+    bridges.clear()

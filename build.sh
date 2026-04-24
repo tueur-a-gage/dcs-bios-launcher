@@ -1,4 +1,4 @@
-set -e
+  set -e
 
 # Source private environment variables
 source .private
@@ -17,11 +17,17 @@ echo "== Building dcs-bios-launcher"
 echo
 
 # Use this Windows image because we are targeting a Windows executable
+if [[ -z DOCKER_REPO ]]; then
+  DOCKER_REPO="batonogov/pyinstaller-windows"
+else
+  DOCKER_REPO="$DOCKER_REPO/batonogov/pyinstaller-windows"
+fi
+
 docker run --rm \
   -v "$(pwd):/src" \
   -v "$build_folder:/src/build" \
   -v "$dist_folder:/src/dist" \
-  batonogov/pyinstaller-windows \
+  "$DOCKER_REPO" \
   "pyinstaller --onefile $PRODUCTION --name DCS-BIOS-Launcher --add-data 'usb_icon.ico;.' --add-data 'vfa103.png;.' dcs-bios-launcher.py"
 
 # If need to update pip and install requirements before building, use this command instead:

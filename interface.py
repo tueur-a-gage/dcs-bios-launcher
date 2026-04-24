@@ -28,7 +28,7 @@ def open_interface() -> None:
     tk_root = tk.Tk()
     tk_root.title("Available COM ports list")
 
-    socat_processes = []  # List to keep track of launched socat processes
+    bridges = []  # List to keep track of launched sockets/bridges for proper cleanup on exit
 
     try:
         # Load and set the window icon
@@ -73,7 +73,7 @@ def open_interface() -> None:
                                                                      log_text,
                                                                      port_listbox,
                                                                      silent_mode,
-                                                                     socat_processes))
+                                                                     bridges))
         connect_button.grid(row=0, column=1, sticky='ew', padx=5, pady=5)
         button_frame.grid_columnconfigure(0, weight=1)
         button_frame.grid_columnconfigure(1, weight=1)
@@ -130,6 +130,7 @@ def open_interface() -> None:
 
     def on_closing():
         try:
+            com.stop_all_bridges(bridges)  # Function to stop all running bridges/sockets
             tk_root.destroy()
         except tk.TclError as e:
             print(f"Error destroying window: {e}")

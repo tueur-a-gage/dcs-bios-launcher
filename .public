@@ -4,6 +4,7 @@
 export DCS_BIOS_FOLDER=""
 
 # Target folder for build/dist
+export DOCKER_REPO=""
 export DCS_BIOS_LAUNCHER_FOLDER=""
 
 # Set this variable to --windowed if you want to build a windowed application (no console)

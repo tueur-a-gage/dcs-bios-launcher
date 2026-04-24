@@ -63,7 +63,7 @@ source .venv/bin/activate
 ### Upgrade pip
 
 ```powershell
-python.exe -m pip install --upgrade pip
+python -m pip install --upgrade pip
 ```
 
 ### Install requirements
