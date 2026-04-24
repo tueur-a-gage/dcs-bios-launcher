@@ -25,7 +25,12 @@ class TextRedirector:
 
 def open_interface() -> None:
     '''Function to open the graphical interface'''
-    tk_root = tk.Tk()
+    try:
+        tk_root = tk.Tk()
+    except tk.TclError as e:
+        print(f"Error: Unable to open graphical interface: {e}")
+        return
+
     tk_root.title("Available COM ports list")
 
     bridges = []  # List to keep track of launched sockets/bridges for proper cleanup on exit
